@@ -1,0 +1,72 @@
+{% extends "layout.html" %}
+
+{% block title %}
+Neighborhood Search
+{% endblock %}
+
+{% block main %}
+<div class="container mt-4">
+    <h2>Find Your Ideal Neighborhood</h2>
+    <form id="recommend-form" class="mt-4">
+        <!-- Input for Desired Price -->
+        <div class="mb-3">
+            <label for="price" class="form-label">Desired Price (USD)</label>
+            <input type="number" id="price" class="form-control" placeholder="Enter your maximum price" required>
+        </div>
+
+        <!-- Input for Desired Square Footage -->
+        <div class="mb-3">
+            <label for="sqft" class="form-label">Desired Square Footage</label>
+            <input type="number" id="sqft" class="form-control" placeholder="Enter your minimum square footage" required>
+        </div>
+
+        <!-- Input for Total Units -->
+        <div class="mb-3">
+            <label for="total_units" class="form-label">Total Units</label>
+            <input type="number" id="total_units" class="form-control" placeholder="Enter total number of units" required>
+        </div>
+
+        <!-- Submit Button -->
+        <button type="submit" class="btn btn-primary">Find Neighborhood</button>
+    </form>
+
+    <!-- Display the recommendation result -->
+    <div id="recommendation-result" class="mt-4"></div>
+</div>
+
+<script>
+    document.getElementById("recommend-form").addEventListener("submit", async function(e) {
+        e.preventDefault();
+
+        // Collect user inputs
+        const price = document.getElementById("price").value;
+        const sqft = document.getElementById("sqft").value;
+        const total_units = document.getElementById("total_units").value;
+
+        // Send a POST request to the recommendation endpoint
+        const response = await fetch("/recommend", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ price, sqft, total_units })
+        });
+
+        const data = await response.json();
+        const resultDiv = document.getElementById("recommendation-result");
+
+        // Display the result or error message
+        if (data.neighborhood) {
+            resultDiv.innerHTML = `
+                <div class="alert alert-success">
+                    <strong>Recommended Neighborhood:</strong> ${data.neighborhood}
+                </div>
+            `;
+        } else {
+            resultDiv.innerHTML = `
+                <div class="alert alert-danger">
+                    <strong>Error:</strong> ${data.error || "An error occurred."}
+                </div>
+            `;
+        }
+    });
+</script>
+{% endblock %}

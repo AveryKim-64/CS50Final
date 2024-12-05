@@ -1,0 +1,52 @@
+
+/* General body styling */
+body {
+    font-family: Arial, sans-serif;
+    margin: 0;
+    padding: 0;
+    background-color: #f4f4f4; /* Light background for contrast */
+}
+
+/* Header styling */
+h1 {
+    color: #333;
+    text-align: center;
+    margin-top: 20px;
+}
+
+/* Map container styling */
+#map-container { 
+    max-width: 800px;
+    height: 600px; /* Reduced to a reasonable height */
+    border: 1px solid #ddd;
+    margin: 20px auto;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+/* Map styling */
+#map {
+    width: 100%;
+    height: 100%;
+}
+
+/* Styling for the toggle button */
+#toggle-btn {
+    display: block; /* Ensure it's treated as a block element */
+    margin: 20px auto; /* Center horizontally */
+    padding: 10px 20px;
+    background-color: #1e0b7a; /* Red background */
+    color: white; /* White text */
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 16px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    transition: background-color 0.2s ease, box-shadow 0.2s ease;
+    text-align: center;
+}
+
+/* Hover effect for the toggle button */
+#toggle-btn:hover {
+    background-color: #094931; /* Darker red on hover */
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+}

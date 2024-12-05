@@ -1,0 +1,118 @@
+{% extends "layout.html" %}
+
+{% block title %}
+    NYC Affordable Housing
+{% endblock %}
+
+{% block main %}
+<div class="container">
+    <h1>Interactive NYC Housing Map</h1>
+    
+    <!-- Toggle button -->
+    <button id="toggle-btn">Show Metrics Normalized per Uni</button>
+    
+    <!-- Map container -->
+    <div id="map-container">
+        <div id="map"></div>
+    </div>
+</div>
+
+<!-- Include Mapbox CSS and JS -->
+<link href="https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.css" rel="stylesheet">
+<script src="https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.js"></script>
+<link href="/static/styles.css?v=2" rel="stylesheet">
+
+<script>
+    mapboxgl.accessToken = '{{ mapbox_token }}';
+
+    const map = new mapboxgl.Map({
+        container: 'map', // ID of the HTML container
+        style: 'mapbox://styles/mapbox/streets-v12', // Mapbox style
+        center: [-74.0060, 40.7128], // NYC coordinates
+        zoom: 10 // Initial zoom level
+    });
+
+    // Add controls to the map
+    map.addControl(new mapboxgl.NavigationControl());
+
+    // State to track the toggle status
+    let normalizedMode = false;
+
+    // Add the neighborhoods layer on map load
+    map.on('load', function () {
+        map.addSource('neighborhoods', {
+            type: 'geojson',
+            data: '/static/merged_neighborhoods.json' // Path to the merged GeoJSON
+        });
+
+        // Add the neighborhoods layer
+        map.addLayer({
+            id: 'neighborhoods-layer',
+            type: 'fill',
+            source: 'neighborhoods',
+            paint: {
+                'fill-color': [
+                    'case',
+                    ['==', ['get', 'num_sales'], 0], // No sales
+                    '#cccccc', // Grey out neighborhoods with 0 sales
+                    '#888888'  // Default grey color
+                ],
+                'fill-opacity': 0.5
+            }
+        });
+
+        // Add border to neighborhoods
+        map.addLayer({
+            id: 'neighborhoods-borders',
+            type: 'line',
+            source: 'neighborhoods',
+            paint: {
+                'line-color': '#000000',
+                'line-width': 1
+            }
+        });
+
+        // Add hover interaction
+        map.on('mouseenter', 'neighborhoods-layer', function (e) {
+            const properties = e.features[0].properties;
+
+            const popupContent = `
+                <strong>${properties.neighborhood || 'Unknown'}, ${properties.borough || 'Unknown'}</strong><br>
+                <strong>Number of Sales:</strong> ${properties.num_sales || 0}<br>
+                <strong>${normalizedMode ? 'Average Price per Unit' : 'Average Price'}:</strong> 
+                    $${(normalizedMode ? properties.avg_price_per_unit : properties.avg_price)?.toLocaleString() || 'N/A'}<br>
+                <strong>${normalizedMode ? 'Average Square Footage per Unit' : 'Average Square Footage'}:</strong> 
+                    ${(normalizedMode ? properties.avg_sqft_per_unit : properties.avg_sqft)?.toLocaleString() || 'N/A'} sqft
+            `;
+
+            new mapboxgl.Popup()
+                .setLngLat(e.lngLat)
+                .setHTML(popupContent)
+                .addTo(map);
+        });
+
+        map.on('mouseleave', 'neighborhoods-layer', function () {
+            map.getCanvas().style.cursor = '';
+            document.querySelector('.mapboxgl-popup')?.remove();
+        });
+    });
+
+    // Function to update the map layer styling based on toggle state
+    function updateMapStyling() {
+        map.setPaintProperty('neighborhoods-layer', 'fill-color', [
+            'case',
+            ['==', ['get', 'num_sales'], 0], // No sales
+            '#cccccc', // Grey for no sales
+            normalizedMode ? '#00FF00' : '#888888' // Green if normalizedMode, grey otherwise
+        ]);
+    }
+
+    // Attach event listener to the toggle button
+    const toggleButton = document.getElementById('toggle-btn');
+    toggleButton.addEventListener('click', () => {
+        normalizedMode = !normalizedMode; // Toggle the state
+        toggleButton.textContent = normalizedMode ? 'Switch to Unfiltered Metrics' : 'Switch to Metrics Normalized per Unit';
+        updateMapStyling(); // Update the map styling
+    });
+</script>
+{% endblock %}
