@@ -9,7 +9,7 @@
     <h1>Interactive NYC Housing Map</h1>
     
     <!-- Toggle button -->
-    <button id="toggle-btn">Show Metrics Normalized per Uni</button>
+    <button id="toggle-btn">Show Metrics Normalized per Unit</button>
     
     <!-- Map container -->
     <div id="map-container">
@@ -23,59 +23,67 @@
 <link href="/static/styles.css?v=2" rel="stylesheet">
 
 <script>
+    // Set the Mapbox access token for API calls
     mapboxgl.accessToken = '{{ mapbox_token }}';
 
+    // Initialize the Mapbox map
     const map = new mapboxgl.Map({
-        container: 'map', // ID of the HTML container
-        style: 'mapbox://styles/mapbox/streets-v12', // Mapbox style
-        center: [-74.0060, 40.7128], // NYC coordinates
+        container: 'map', // ID of the HTML container for the map
+        style: 'mapbox://styles/mapbox/streets-v12', // Mapbox style URL
+        center: [-74.0060, 40.7128], // Center the map on NYC coordinates
         zoom: 10 // Initial zoom level
     });
 
-    // Add controls to the map
+    // Add zoom and rotation controls to the map
     map.addControl(new mapboxgl.NavigationControl());
 
-    // State to track the toggle status
+    // Track the state of the toggle button (default is unnormalized)
     let normalizedMode = false;
 
-    // Add the neighborhoods layer on map load
+    // Load the neighborhood data and map layers once the map is ready
     map.on('load', function () {
+        // Add GeoJSON data source for neighborhoods
         map.addSource('neighborhoods', {
-            type: 'geojson',
-            data: '/static/merged_neighborhoods.json' // Path to the merged GeoJSON
+            type: 'geojson', // Type of source
+            data: '/static/merged_neighborhoods.json' // Path to the GeoJSON file
         });
 
-        // Add the neighborhoods layer
+        // Add a fill layer to visualize neighborhoods with color coding
         map.addLayer({
-            id: 'neighborhoods-layer',
-            type: 'fill',
-            source: 'neighborhoods',
+            id: 'neighborhoods-layer', // Layer ID
+            type: 'fill', // Type of layer
+            source: 'neighborhoods', // Source for the layer
             paint: {
                 'fill-color': [
-                    'case',
-                    ['==', ['get', 'num_sales'], 0], // No sales
-                    '#cccccc', // Grey out neighborhoods with 0 sales
-                    '#888888'  // Default grey color
+                    'interpolate', // Create a gradient of colors
+                    ['linear'], // Use linear interpolation for values
+                    ['get', 'avg_price'], // Metric to color neighborhoods (default: avg_price)
+                    0, '#f5f5f5', // Light grey for lowest values
+                    500000, '#ffffb2', // Yellow for mid-range
+                    1000000, '#fd8d3c', // Orange for higher values
+                    5000000, '#f03b20', // Red for very high values
+                    10000000, '#bd0026' // Dark red for the highest values
                 ],
-                'fill-opacity': 0.5
+                'fill-opacity': 0.6 // Set the transparency of the layer
             }
         });
 
-        // Add border to neighborhoods
+        // Add a line layer to show neighborhood borders
         map.addLayer({
-            id: 'neighborhoods-borders',
-            type: 'line',
-            source: 'neighborhoods',
+            id: 'neighborhoods-borders', // Layer ID for borders
+            type: 'line', // Type of layer
+            source: 'neighborhoods', // Source for the layer
             paint: {
-                'line-color': '#000000',
-                'line-width': 1
+                'line-color': '#000000', // Black color for borders
+                'line-width': 1 // Border width
             }
         });
 
-        // Add hover interaction
+        // Add interactivity for hovering over neighborhoods
         map.on('mouseenter', 'neighborhoods-layer', function (e) {
-            const properties = e.features[0].properties;
+            const properties = e.features[0].properties; // Get the properties of the hovered feature
 
+            // Create a popup with neighborhood details, implementation from w3 and infro from Chat GPT 
             const popupContent = `
                 <strong>${properties.neighborhood || 'Unknown'}, ${properties.borough || 'Unknown'}</strong><br>
                 <strong>Number of Sales:</strong> ${properties.num_sales || 0}<br>
@@ -85,34 +93,41 @@
                     ${(normalizedMode ? properties.avg_sqft_per_unit : properties.avg_sqft)?.toLocaleString() || 'N/A'} sqft
             `;
 
+            // Display the popup
             new mapboxgl.Popup()
-                .setLngLat(e.lngLat)
-                .setHTML(popupContent)
-                .addTo(map);
+                .setLngLat(e.lngLat) // Set the popup position
+                .setHTML(popupContent) // Set the HTML content
+                .addTo(map); // Add the popup to the map
         });
 
+        // Remove the popup when the mouse leaves the layer
         map.on('mouseleave', 'neighborhoods-layer', function () {
-            map.getCanvas().style.cursor = '';
-            document.querySelector('.mapboxgl-popup')?.remove();
+            map.getCanvas().style.cursor = ''; // Reset the cursor style
+            document.querySelector('.mapboxgl-popup')?.remove(); // Remove the popup
         });
     });
 
-    // Function to update the map layer styling based on toggle state
+    // Function to update the heatmap coloring based on the toggle state
     function updateMapStyling() {
         map.setPaintProperty('neighborhoods-layer', 'fill-color', [
-            'case',
-            ['==', ['get', 'num_sales'], 0], // No sales
-            '#cccccc', // Grey for no sales
-            normalizedMode ? '#00FF00' : '#888888' // Green if normalizedMode, grey otherwise
+            'interpolate', // Create a gradient of colors
+            ['linear'], // Use linear interpolation
+            ['get', normalizedMode ? 'avg_price_per_unit' : 'avg_price'], // Metric depends on toggle state
+            0, '#f5f5f5', // Light grey for lowest values
+            500000, '#ffffb2', // Yellow for mid-range
+            1000000, '#fd8d3c', // Orange for higher values
+            5000000, '#f03b20', // Red for very high values
+            10000000, '#bd0026' // Dark red for the highest values
         ]);
     }
 
     // Attach event listener to the toggle button
     const toggleButton = document.getElementById('toggle-btn');
     toggleButton.addEventListener('click', () => {
-        normalizedMode = !normalizedMode; // Toggle the state
-        toggleButton.textContent = normalizedMode ? 'Switch to Unfiltered Metrics' : 'Switch to Metrics Normalized per Unit';
-        updateMapStyling(); // Update the map styling
+        normalizedMode = !normalizedMode; // Flip the toggle state
+        toggleButton.textContent = normalizedMode ? 'Switch to Unfiltered Metrics' : 'Switch to Metrics Normalized per Unit'; // Update button text
+        updateMapStyling(); // Refresh the map styling
     });
 </script>
+
 {% endblock %}

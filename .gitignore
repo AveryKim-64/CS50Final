@@ -1,3 +1,10 @@
 *.csv
+# Ignore all JSON files by default
 *.json
+
+# Exception: Do not ignore the merged_neighborhoods.json file
+!merged_neighborhoods.json
+
+# Ignore DBF files
+*.dbf
 *.db
